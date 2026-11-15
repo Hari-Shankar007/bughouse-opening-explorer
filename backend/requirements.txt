@@ -1,0 +1,4 @@
+fastapi>=0.110,<1
+uvicorn[standard]>=0.29,<1
+httpx>=0.27,<1
+bughouse-explorer @ git+https://github.com/Ellipsoul/bughouse-opening-explorer.git@ca7a8ed2967fa84bf499619ff900991682b11d02
