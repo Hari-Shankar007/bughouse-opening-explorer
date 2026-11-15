@@ -1,0 +1,20 @@
+bughouse.example.com {
+	encode zstd gzip
+
+	@catalog path /api/catalog/*
+	handle @catalog {
+		uri replace /api/catalog /api
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	@opening path /api/opening/*
+	handle @opening {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	handle {
+		root * /srv/bughouse-opening-explorer/dist
+		try_files {path} /index.html
+		file_server
+	}
+}

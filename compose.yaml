@@ -1,0 +1,19 @@
+services:
+  catalog-api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      BUGHOUSE_CRAWLER_DB: /data/crawler.db
+      CATALOG_ALLOWED_ORIGINS: ""
+    volumes:
+      - type: bind
+        source: ./data/crawler.db
+        target: /data/crawler.db
+        read_only: true
+        bind:
+          create_host_path: false
+    ports:
+      - "127.0.0.1:8001:8001"

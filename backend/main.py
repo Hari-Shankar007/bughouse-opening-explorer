@@ -227,7 +227,7 @@ def players(q: str | None = Query(default=None, max_length=64), page: int = Quer
         else:
             where, params = "", []
         total = conn.execute(f"SELECT COUNT(*) FROM players p {where}", params).fetchone()[0]
-        rows = conn.execute(f"""SELECT p.username, p.display_username, p.state,
+        rows = conn.execute(f"""SELECT p.username, p.display_username,
             COUNT(DISTINCT gp.game_uuid) AS games,
             SUM(CASE WHEN gp.result='win' THEN 1 ELSE 0 END) AS wins,
             AVG(gp.rating) AS average_rating
@@ -240,8 +240,8 @@ def players(q: str | None = Query(default=None, max_length=64), page: int = Quer
 @app.get("/api/players/{username}")
 def player_profile(username: str, page: int = Query(default=1, ge=1), page_size: int = Query(default=25, ge=1, le=100)):
     with db() as conn:
-        player = conn.execute("""SELECT p.id, p.username, p.display_username, p.state,
-            p.qualifying_rating, AVG(gp.rating) AS average_rating
+        player = conn.execute("""SELECT p.id, p.username, p.display_username,
+            AVG(gp.rating) AS average_rating
             FROM players p LEFT JOIN game_participants gp ON gp.player_id=p.id
             WHERE p.username=? COLLATE NOCASE GROUP BY p.id""", [username]).fetchone()
         if not player:

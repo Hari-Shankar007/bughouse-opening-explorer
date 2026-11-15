@@ -30,6 +30,8 @@ The Vite development server proxies `/api/catalog` to the catalog API and `/api/
 - Partner board moves are replayed independently. The crawler retains links and board records, but does not provide a synchronized four-player event timeline.
 - Openings are one-board statistics. Win/loss results are shown only when included in the service response.
 
+See [deploy/README.md](deploy/README.md) for the Docker and Caddy setup.
+
 ## Deployment layout
 
 Host this Vite frontend on a static host. Run the FastAPI catalog API on a small persistent service with a read-only mount of a validated crawler snapshot. Keep the opening reader and its multi-gigabyte artifact on a host configured for that artifact size, or use the existing authorized hosted service. Store all bearer tokens as backend secrets. Keep crawler/update jobs separate from public request serving.
