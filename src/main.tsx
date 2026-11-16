@@ -73,7 +73,7 @@ function GamePage({id,go}:{id:string;go:(s:string)=>void}) {
   const partner=data.partner||null;
   const reciprocal=!!partner&&partner.partner_uuid===data.uuid;
     return <><button className="back-link" onClick={()=>go('/games')}><ArrowLeft size={15}/> Game database</button>
-    <PageTitle eyebrow="BUGHOUSE MATCH VIEWER" title={`${data.white_username||'Unknown'} & ${partner?.white_username||'Unknown'} vs ${data.black_username||'Unknown'} & ${partner?.black_username||'Unknown'}`} detail={`${date(data.end_time)} · ${data.time_control||'Time control unknown'} · Board A: ${resultText(data)}`} action={data.url?<a className="button ghost" href={data.url} target="_blank" rel="noreferrer">Source game <ExternalLink size={14}/></a>:null}/>
+    <PageTitle eyebrow="BUGHOUSE MATCH VIEWER" title="Linked Bughouse records" detail={`${date(data.end_time)} · ${data.time_control||'Time control unknown'} · Board A: ${data.white_username||'Unknown'} vs ${data.black_username||'Unknown'} · Board B: ${partner?`${partner.white_username||'Unknown'} vs ${partner.black_username||'Unknown'}`:'unavailable'}`} action={data.url?<a className="button ghost" href={data.url} target="_blank" rel="noreferrer">Source game <ExternalLink size={14}/></a>:null}/>
     <div className="viewer-mode-note"><b>Historical Replay</b><span>Each board follows its own recorded move order. The source has no cross-board move timestamps, so the boards are not synchronized.</span></div>
     <div className="two-board-grid">
       <ReplayPanel label="Board A" game={data} selected={selectedBoard==='A'} onSelect={()=>setSelectedBoard('A')}/>
