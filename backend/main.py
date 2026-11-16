@@ -124,8 +124,8 @@ def health():
 @app.get("/api/opening/{path:path}")
 def opening_proxy(path: str, request: Request):
     """Proxy the existing bounded opening API without exposing its bearer token."""
-    if not OPENING_URL or not OPENING_TOKEN:
-        raise HTTPException(status_code=503, detail="Opening service is not configured")
+    if not OPENING_URL:
+        raise HTTPException(status_code=503, detail="Opening service URL is not configured")
     safe_path = path.strip("/")
     allowed = (
         safe_path == "api/meta"
@@ -139,10 +139,13 @@ def opening_proxy(path: str, request: Request):
     permitted = {"dataset_version", "state_id", "target_forward_depth", "max_nodes", "max_encoded_bytes", "white", "black", "edge_id", "limit", "prefix"}
     params = {key: value for key, value in request.query_params.items() if key in permitted}
     try:
+        headers = {"Accept": "application/json"}
+        if OPENING_TOKEN:
+            headers["Authorization"] = f"Bearer {OPENING_TOKEN}"
         response = httpx.get(
             f"{OPENING_URL}/{safe_path}", params=params,
-            headers={"Authorization": f"Bearer {OPENING_TOKEN}", "Accept": "application/json"},
-            timeout=15.0,
+            headers=headers,
+            timeout=45.0,
         )
     except httpx.HTTPError as exc:
         raise HTTPException(status_code=503, detail="Opening service is unavailable") from exc
