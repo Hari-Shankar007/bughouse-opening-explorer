@@ -1,5 +1,13 @@
 # Deployment layout
 
+## GitHub Pages frontend
+
+The workflow at `.github/workflows/pages.yml` builds and publishes the Vite frontend to `https://hari-shankar007.github.io/bughouse-opening-explorer/` on pushes to `main`. In the repository, open **Settings → Pages** and set **Build and deployment → Source** to **GitHub Actions**. The workflow deploys the static interface; it does not host the SQLite catalog API, crawler, or packed opening artifact.
+
+To connect live data, deploy the API using the instructions below, then set the repository Actions variable `VITE_API_ORIGIN` to that API's public HTTPS origin (for example, `https://api.example.com`). Configure `CATALOG_ALLOWED_ORIGINS` on the API to allow `https://hari-shankar007.github.io`. The bearer token remains in the API host's server environment and must not be added as a GitHub Pages variable or frontend secret.
+
+Without `VITE_API_ORIGIN`, the public page will render with an explicit data-unavailable state. That is a frontend deployment only, not a live database deployment.
+
 This project separates the public interface from the existing data operations:
 
 1. Build `dist/` with `npm ci && npm run build`, then serve it from a static host or Caddy.

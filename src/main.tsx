@@ -7,23 +7,25 @@ type Page = 'overview' | 'games' | 'openings' | 'players' | 'game' | 'player';
 type Game = { uuid: string; partner_uuid?: string|null; end_time?: number|null; time_class?: string|null; time_control?: string|null; white_username?: string|null; black_username?: string|null; white_rating?: number|null; black_rating?: number|null; white_result?: string|null; black_result?: string|null; url?: string|null; fen?: string|null; moves?: Move[]; positions?: Record<string,string>[]; replay_available?: boolean; replay_truncated?: boolean; partner?: Game|null };
 type Move = { from?: string; to: string; drop?: string; promotion?: string };
 type PageData<T> = { [k:string]: T[]|number };
-const catalog = '/api/catalog';
-const opening = '/api/opening';
+const apiOrigin = (import.meta.env.VITE_API_ORIGIN || '').replace(/\/+$/, '');
+const catalog = apiOrigin ? `${apiOrigin}/api` : '/api/catalog';
+const opening = apiOrigin ? `${apiOrigin}/api/opening` : '/api/opening';
 const fmt = (n?: number|null) => n == null ? '—' : new Intl.NumberFormat('en').format(n);
 const date = (t?: number|null) => t ? new Date(t * 1000).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}) : 'Date unknown';
 const resultText = (g: Game) => g.white_result === 'win' ? 'White won' : g.black_result === 'win' ? 'Black won' : g.white_result === 'draw' || g.black_result === 'draw' ? 'Draw' : 'Result unavailable';
 
 function useRoute() {
-  const [loc, setLoc] = useState(location.pathname + location.search);
-  useEffect(() => { const fn = () => setLoc(location.pathname + location.search); addEventListener('popstate',fn); return () => removeEventListener('popstate',fn); },[]);
-  const go = useCallback((path: string) => { history.pushState({},'',path); setLoc(path); window.scrollTo(0,0); },[]);
+  const currentRoute = () => location.hash.startsWith('#/') ? location.hash.slice(1) : location.pathname + location.search;
+  const [loc, setLoc] = useState(currentRoute);
+  useEffect(() => { const fn = () => setLoc(currentRoute()); addEventListener('popstate',fn); addEventListener('hashchange',fn); return () => { removeEventListener('popstate',fn); removeEventListener('hashchange',fn); }; },[]);
+  const go = useCallback((path: string) => { history.pushState({},'',`${location.pathname}${location.search}#${path}`); setLoc(path); window.scrollTo(0,0); },[]);
   const url = new URL(loc, location.origin);
   const segments = url.pathname.split('/').filter(Boolean);
   const page: Page = segments[0] === 'games' && segments[1] ? 'game' : segments[0] === 'games' ? 'games' : segments[0] === 'openings' ? 'openings' : segments[0] === 'players' && segments[1] ? 'player' : segments[0] === 'players' ? 'players' : 'overview';
   return { page, id: segments[1], search: url.searchParams, go };
 }
 
-async function getJson<T>(url: string): Promise<T> { const r = await fetch(url); const body = await r.json().catch(()=>({})); if (!r.ok) throw new Error(body.detail || body.code || `Request failed (${r.status})`); return body as T; }
+async function getJson<T>(url: string): Promise<T> { if (!import.meta.env.DEV && !apiOrigin) throw new Error('The data API is not configured for this deployment.'); const r = await fetch(url); const body = await r.json().catch(()=>({})); if (!r.ok) throw new Error(body.detail || body.code || `Request failed (${r.status})`); return body as T; }
 
 function App() {
   const {page,id,search,go} = useRoute();

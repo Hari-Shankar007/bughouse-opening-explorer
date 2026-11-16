@@ -30,7 +30,7 @@ The Vite development server proxies `/api/catalog` to the catalog API and `/api/
 - Partner board moves are replayed independently. The crawler retains links and board records, but does not provide a synchronized four-player event timeline.
 - Openings are one-board statistics. Win/loss results are shown only when included in the service response.
 
-See [deploy/README.md](deploy/README.md) for the Docker and Caddy setup.
+See [deploy/README.md](deploy/README.md) for the Docker and Caddy setup. A GitHub Pages workflow publishes the static frontend at `https://hari-shankar007.github.io/bughouse-opening-explorer/` after Pages is enabled for the repository. Set the repository variable `VITE_API_ORIGIN` to the public origin of your catalog API to connect live data; leave it unset to publish the frontend without data calls.
 
 ## Deployment layout
 
