@@ -10,6 +10,7 @@ type PageData<T> = { [k:string]: T[]|number };
 const apiOrigin = (import.meta.env.VITE_API_ORIGIN || '').replace(/\/+$/, '');
 const catalog = apiOrigin ? `${apiOrigin}/api` : '/api/catalog';
 const opening = apiOrigin ? `${apiOrigin}/api/opening` : '/api/opening';
+const requiresApiOrigin = import.meta.env.PROD && import.meta.env.BASE_URL === '/bughouse-opening-explorer/';
 const fmt = (n?: number|null) => n == null ? '—' : new Intl.NumberFormat('en').format(n);
 const date = (t?: number|null) => t ? new Date(t * 1000).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}) : 'Date unknown';
 const resultText = (g: Game) => g.white_result === 'win' ? 'White won' : g.black_result === 'win' ? 'Black won' : g.white_result === 'draw' || g.black_result === 'draw' ? 'Draw' : 'Result unavailable';
@@ -25,7 +26,7 @@ function useRoute() {
   return { page, id: segments[1], search: url.searchParams, go };
 }
 
-async function getJson<T>(url: string): Promise<T> { if (!import.meta.env.DEV && !apiOrigin) throw new Error('The data API is not configured for this deployment.'); const r = await fetch(url); const body = await r.json().catch(()=>({})); if (!r.ok) throw new Error(body.detail || body.code || `Request failed (${r.status})`); return body as T; }
+async function getJson<T>(url: string): Promise<T> { if (requiresApiOrigin && !apiOrigin) throw new Error('The data API is not configured for this deployment.'); const r = await fetch(url); const body = await r.json().catch(()=>({})); if (!r.ok) throw new Error(body.detail || body.code || `Request failed (${r.status})`); return body as T; }
 
 function App() {
   const {page,id,search,go} = useRoute();
