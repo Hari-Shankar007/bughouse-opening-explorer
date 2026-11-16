@@ -30,14 +30,15 @@ The Vite development server proxies `/api/catalog` to the catalog API and `/api/
 - Partner board moves are replayed independently. The crawler retains links and board records, but does not provide a synchronized four-player event timeline.
 - Openings are one-board statistics. Win/loss results are shown only when included in the service response.
 
-See [deploy/README.md](deploy/README.md) for the Docker and Caddy setup. A GitHub Pages workflow publishes the static frontend at `https://hari-shankar007.github.io/bughouse-opening-explorer/` after Pages is enabled for the repository. Set the repository variable `VITE_API_ORIGIN` to the public origin of your catalog API to connect live data; leave it unset to publish the frontend without data calls.
+See [deploy/README.md](deploy/README.md) for the Docker and Caddy setup. The GitHub Pages deployment at `https://hari-shankar007.github.io/bughouse-opening-explorer/` embeds Ellipsoul's public opening explorer when this site's own opening API is not configured. The embedded public index was verified on 16 November 2026 and reported 7,019,712 accepted games. Set the repository variable `VITE_API_ORIGIN` to the public origin of your API to use the native opening view and enable this site's game/player catalog endpoints.
 
 ## Deployment layout
 
 Host this Vite frontend on a static host. Run the FastAPI catalog API on a small persistent service with a read-only mount of a validated crawler snapshot. Keep the opening reader and its multi-gigabyte artifact on a host configured for that artifact size, or use the existing authorized hosted service. Store all bearer tokens as backend secrets. Keep crawler/update jobs separate from public request serving.
 
-The raw DB and opening artifact are not in this repository. A website deployment is not data-connected until those files/services and credentials are provisioned and the `/api/catalog/health` and `/api/opening/api/meta` endpoints have been checked.
+The raw crawler DB is not in either GitHub repository, so the game search and player profiles need a separately hosted read-only catalog API with a validated crawler snapshot. The packed opening artifact is also not in this repository; the public embedded explorer uses Ellipsoul's existing hosted reader and artifact. The upstream GitHub source does not publish the raw DB or artifact files.
 
 ## License
 
 This interface is licensed under AGPL-3.0-or-later to match the existing data platform it integrates with. See `LICENSE`.
+
