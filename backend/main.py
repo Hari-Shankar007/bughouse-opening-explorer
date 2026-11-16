@@ -181,8 +181,10 @@ def games(
 ):
     clauses, params = [], []
     if q:
-        clauses.append("g.uuid LIKE ?")
-        params.append(f"{q}%")
+        # Prefix search keeps this bounded while allowing the database search box
+        # to find either a board UUID or a player username.
+        clauses.append("(g.uuid LIKE ? OR wp.username LIKE ? COLLATE NOCASE OR bp.username LIKE ? COLLATE NOCASE)")
+        params.extend([f"{q}%", f"{q}%", f"{q}%"])
     if player:
         clauses.append("(wp.username = ? COLLATE NOCASE OR bp.username = ? COLLATE NOCASE)")
         params.extend([player, player])
@@ -250,3 +252,4 @@ def player_profile(username: str, page: int = Query(default=1, ge=1), page_size:
         outcomes = conn.execute("SELECT result, COUNT(*) AS n FROM game_participants WHERE player_id=? GROUP BY result", [player["id"]]).fetchall()
         rows = conn.execute(game_select("JOIN game_participants mine ON mine.game_uuid=g.uuid WHERE mine.player_id=?") + " ORDER BY g.end_time DESC LIMIT ? OFFSET ?", [player["id"], page_size, (page - 1) * page_size]).fetchall()
     return {"player": dict(player), "games": [public_game(row) for row in rows], "outcomes": {row["result"] or "unknown": row["n"] for row in outcomes}, "total": games_total, "page": page, "page_size": page_size, "pages": (games_total + page_size - 1) // page_size}
+
