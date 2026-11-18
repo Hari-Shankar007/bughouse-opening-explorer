@@ -135,6 +135,8 @@ def chesscom_board(game_id: str) -> dict[str, Any] | None:
         raise HTTPException(502, f"Chess.com returned status {response.status_code}")
     try:
         payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("expected a JSON object")
         game = payload.get("game", payload)
         if not isinstance(game, dict) or not isinstance(game.get("id"), (int, str)):
             raise ValueError("missing game object")
