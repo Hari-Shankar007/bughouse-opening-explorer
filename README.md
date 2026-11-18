@@ -32,9 +32,12 @@ The Vite development server proxies `/api/catalog` and `/api/opening` to the API
 
 The read-only API in `backend/` can serve the existing crawler schema when `BUGHOUSE_CRAWLER_DB` points to an authorized, closed/checkpointed snapshot. The raw crawler database is not published in either GitHub repository. Games and player profiles therefore need a separately hosted snapshot; opening-position counts do not.
 
+### Open a Chess.com game by ID
+
+The Games page also accepts a Chess.com live game ID and fetches that public game on demand through the callback endpoint already used by the Ellipsoul game viewer. It accepts only records Chess.com identifies as Bughouse and follows only an explicit partner-game reference. The import is temporary: it is not written into the historical archive or opening index. This callback is undocumented and may change; Chess.com’s documented PubAPI does not provide this single-game lookup. The feature needs the FastAPI backend deployed and `VITE_API_ORIGIN` set, but does not require a crawler database snapshot.
+
 See [deploy/README.md](deploy/README.md) for deployment configuration. Keep `OPENING_SERVICE_TOKEN` and any database credentials on the API host; never place them in `VITE_` variables.
 
 ## License
 
 This interface is licensed under AGPL-3.0-or-later to match the existing data platform it integrates with. See `LICENSE`.
-

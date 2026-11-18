@@ -114,11 +114,94 @@ def public_game(row: sqlite3.Row, include_moves: bool = False) -> dict[str, Any]
     return result
 
 
+def chesscom_board(game_id: str) -> dict[str, Any] | None:
+    """Fetch one public live game from the callback used by the existing viewer."""
+    try:
+        response = httpx.get(
+            f"https://www.chess.com/callback/live/game/{game_id}",
+            headers={"Accept": "application/json", "User-Agent": "BughouseOpeningExplorer/1.0"},
+            timeout=12.0,
+            follow_redirects=True,
+        )
+    except httpx.TimeoutException as exc:
+        raise HTTPException(504, "Chess.com game lookup timed out") from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(502, "Chess.com game lookup failed") from exc
+    if response.status_code == 404:
+        return None
+    if response.status_code == 429:
+        raise HTTPException(503, "Chess.com is rate limiting game lookups; try again later")
+    if response.status_code >= 400:
+        raise HTTPException(502, f"Chess.com returned status {response.status_code}")
+    try:
+        payload = response.json()
+        game = payload.get("game", payload)
+        if not isinstance(game, dict) or not isinstance(game.get("id"), (int, str)):
+            raise ValueError("missing game object")
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(502, "Chess.com returned an unrecognized game response") from exc
+    if str(game.get("id")) != game_id:
+        raise HTTPException(502, "Chess.com returned a different game ID")
+    if str(game.get("type", "")).lower() != "bughouse":
+        raise HTTPException(422, "This Chess.com game is not identified as Bughouse")
+
+    headers = game.get("pgnHeaders") or {}
+    headers = headers if isinstance(headers, dict) else {}
+    result = headers.get("Result")
+    white_result = "win" if result == "1-0" else "draw" if result == "1/2-1/2" else "loss" if result == "0-1" else None
+    black_result = "win" if result == "0-1" else "draw" if result == "1/2-1/2" else "loss" if result == "1-0" else None
+    numeric_id = int(game_id)
+    try:
+        end_time = int(game.get("endTime")) or None
+    except (TypeError, ValueError):
+        end_time = None
+    # The callback's partnerGameId is numeric, so use the same ID namespace for
+    # uuid/partner_uuid and keep Chess.com's UUID separately when supplied.
+    game_uuid = game_id
+    board = {
+        "uuid": game_uuid, "source_uuid": game.get("uuid"), "numeric_id": numeric_id,
+        "partner_uuid": str(game["partnerGameId"]) if game.get("partnerGameId") else None,
+        "end_time": end_time, "time_control": headers.get("TimeControl"),
+        "time_class": None, "rated": game.get("isRated"),
+        "url": f"https://www.chess.com/game/live/{game_id}",
+        "tcn": game.get("moveList") or "", "initial_setup": headers.get("FEN"), "fen": headers.get("FEN"),
+        "white_username": headers.get("White"), "white_rating": _int_or_none(headers.get("WhiteElo")), "white_result": white_result,
+        "black_username": headers.get("Black"), "black_rating": _int_or_none(headers.get("BlackElo")), "black_result": black_result,
+    }
+    return public_game(board, include_moves=True)
+
+
+def _int_or_none(value: Any) -> int | None:
+    try:
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+@app.get("/api/import/chesscom/{game_id}")
+def import_chesscom_game(game_id: str):
+    """On-demand read-only import. Nothing is persisted to the crawler archive."""
+    if not re.fullmatch(r"\d{10,12}", game_id):
+        raise HTTPException(422, "Enter a 10–12 digit Chess.com live game ID")
+    game = chesscom_board(game_id)
+    if game is None:
+        raise HTTPException(404, "Chess.com game was not found or is not publicly available")
+    partner_id = game.get("partner_uuid")
+    game["partner"] = chesscom_board(partner_id) if partner_id and re.fullmatch(r"\d{10,12}", partner_id) else None
+    if game["partner"] and game["partner"].get("partner_uuid") != game_id:
+        game["partner"]["link_warning"] = "Chess.com partner reference is not reciprocal"
+    game["source"] = "chess.com on-demand callback"
+    game["stored_in_archive"] = False
+    return game
+
+
 @app.get("/api/health")
 def health():
-    with db() as conn:
-        conn.execute("SELECT 1 FROM games LIMIT 1")
-    return {"status": "ready", "source": "read-only crawler snapshot"}
+    # The on-demand Chess.com importer and opening proxy do not require the
+    # crawler snapshot. Keep them usable when the archive database is absent.
+    catalog_available = os.path.isfile(DB_PATH)
+    return {"status": "ready", "catalog_available": catalog_available,
+            "source": "on-demand Chess.com lookup and configured read-only services"}
 
 
 @app.get("/api/opening/{path:path}")
@@ -255,4 +338,3 @@ def player_profile(username: str, page: int = Query(default=1, ge=1), page_size:
         outcomes = conn.execute("SELECT result, COUNT(*) AS n FROM game_participants WHERE player_id=? GROUP BY result", [player["id"]]).fetchall()
         rows = conn.execute(game_select("JOIN game_participants mine ON mine.game_uuid=g.uuid WHERE mine.player_id=?") + " ORDER BY g.end_time DESC LIMIT ? OFFSET ?", [player["id"], page_size, (page - 1) * page_size]).fetchall()
     return {"player": dict(player), "games": [public_game(row) for row in rows], "outcomes": {row["result"] or "unknown": row["n"] for row in outcomes}, "total": games_total, "page": page, "page_size": page_size, "pages": (games_total + page_size - 1) // page_size}
-

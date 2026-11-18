@@ -12,6 +12,8 @@ The current public position index reports about seven million accepted games. Th
 
 To enable `/api/catalog` game searches and player profiles, also mount an authorized, closed/checkpointed crawler SQLite snapshot at `BUGHOUSE_CRAWLER_DB`. That raw database is not in either GitHub repository. Opening-position counts can work without it; full game/player catalog results cannot.
 
+The `/api/import/chesscom/{game_id}` route is independent of the crawler database. It fetches a single public Chess.com live game and its explicitly referenced partner on demand, without persisting either record. This uses the undocumented callback endpoint already used by the Ellipsoul game viewer, so it can break if Chess.com changes it. A normal Chess.com game ID is 10–12 digits; the endpoint rejects non-Bughouse records.
+
 ## Deployment steps
 
 1. Deploy the existing FastAPI application in `backend/` on a persistent HTTPS host. The backend may serve opening queries without a crawler DB snapshot.
@@ -21,4 +23,3 @@ To enable `/api/catalog` game searches and player profiles, also mount an author
 5. For game/player routes only, mount the validated crawler snapshot and restart the backend.
 
 The crawler and monthly refresh process remain separate. This site does not start a second crawler or rewrite the existing opening index.
-
